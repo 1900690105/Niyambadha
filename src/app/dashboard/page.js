@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { auth, db } from "@/lib/firebase";
+import { auth, db } from "../../lib/firebase";
+
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import {
   doc,
@@ -129,7 +130,7 @@ export default function DashboardPage() {
             <Focus className="w-6 h-6 text-white" />
           </div>
           <div>
-            <p className="text-sm font-semibold tracking-wide">Focus</p>
+            <p className="text-sm font-semibold tracking-wide">Niyambadha</p>
             <p className="text-xs text-slate-400">
               Stay sharp. Block distractions.
             </p>
