@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 // 🔥 Firebase imports (adjust path to your project structure)
-import { auth, db } from "@/lib/firebase"; // <-- change if needed
+import { auth, db } from "../../../lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
@@ -201,10 +201,18 @@ export default function CreateFocusAccount() {
           blockEntireDomain: formData.blockEntireDomain,
           syncToCloud: formData.syncToCloud,
           watchTimeMinutes: formData.watchTimeMinutes, // 🆕 saved here
+          originalTimeMinutes: formData.watchTimeMinutes,
         },
         createdAt: serverTimestamp(),
       });
 
+      const idToken = await auth.currentUser.getIdToken();
+
+      await fetch("/api/createSession", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
       alert("Account created successfully and settings saved!");
 
       window.location.href = `/dashboard`;

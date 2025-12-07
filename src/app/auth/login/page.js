@@ -10,7 +10,7 @@ import {
 
 // Next.js router (App Router)
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { auth } from "../../../lib/firebase";
 
 export default function FocusLogin() {
   const [darkMode, setDarkMode] = useState(true);

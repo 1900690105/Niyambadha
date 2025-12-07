@@ -1,6 +1,6 @@
 // app/api/redirects/route.ts
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { db } from "../../../lib/firebase";
 import {
   doc,
   getDoc,
@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   increment,
 } from "firebase/firestore";
+import { Settings } from "lucide-react";
 
 /**
  * GET /api/redirects?uid=...&domain=...
@@ -78,6 +79,7 @@ export async function POST(req) {
         firstRedirectAt: serverTimestamp(),
         lastRedirectAt: serverTimestamp(),
         puzzleSolvedAt: null,
+        watchTimeMinutes: 0.5,
       });
     } else {
       // Update existing
@@ -109,9 +111,9 @@ export async function POST(req) {
 export async function PATCH(req) {
   try {
     const body = await req.json();
-    const { uid, domain } = body;
+    const { uid, domain, originalTimeMinutes } = body;
 
-    if (!uid || !domain) {
+    if (!uid || !domain || !originalTimeMinutes) {
       return NextResponse.json(
         { error: "uid and domain are required" },
         { status: 400 }
@@ -123,6 +125,9 @@ export async function PATCH(req) {
       ref,
       {
         puzzleSolvedAt: serverTimestamp(),
+        settings: {
+          watchTimeMinutes: originalTimeMinutes,
+        },
       },
       { merge: true }
     );

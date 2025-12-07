@@ -8,14 +8,7 @@ import { PatternPuzzle } from "./components/PatternPuzzle";
 import { MathPuzzle } from "./components/MathPuzzle";
 import { SuccessScreen } from "./components/SuccessScreen";
 import { getAuth } from "firebase/auth";
-import {
-  addDoc,
-  collection,
-  doc,
-  increment,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, increment, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 const CyberPuzzlePortal = () => {
@@ -42,7 +35,8 @@ const CyberPuzzlePortal = () => {
   // 🔹 Load domain from localStorage once
   useEffect(() => {
     try {
-      const storedDomain = typeof window !== "undefined" ? "youtube.com" : null;
+      const storedDomain =
+        typeof window !== "undefined" ? "instagram.com" : null;
       if (storedDomain) {
         setRedirectDomain(storedDomain);
       }
@@ -62,19 +56,32 @@ const CyberPuzzlePortal = () => {
 
     const saveCompletion = async () => {
       try {
-        const auth = getAuth();
-        const user = auth.currentUser;
+        const authInstance = getAuth();
+        const user = authInstance.currentUser;
 
-        await addDoc(collection(db, "puzzleCompletions"), {
-          uid: user?.uid ?? "anonymous",
-          puzzleType,
-          domain: redirectDomain ?? "unknown",
-          attemptsRemaining: attempts,
-          attemptsUsed: 3 - attempts,
-          completedAt: serverTimestamp(),
+        if (!user) {
+          console.error("❌ No logged-in user");
+          return;
+        }
+
+        console.log(user);
+
+        const userRef = doc(db, "users", user.uid);
+
+        await updateDoc(userRef, {
+          lastPuzzle: {
+            puzzleType,
+            domain: redirectDomain ?? "unknown",
+            attemptsRemaining: attempts,
+            attemptsUsed: 3 - attempts,
+            completedAt: serverTimestamp(),
+            solved: true,
+          },
+
+          puzzleSolvedAt: serverTimestamp(), // you can track last solved time
         });
 
-        console.log("✅ Puzzle completion stored in Firestore");
+        console.log("✅ Puzzle data merged into user doc");
       } catch (error) {
         console.error("❌ Error saving puzzle completion:", error);
       }
