@@ -1,5 +1,6 @@
 import { HelpCircle, Lock, Moon, Sun } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
 
@@ -27,7 +28,14 @@ function Header({ isDark, setShowHelp, showHelp, setIsDark }) {
                   isDark ? "text-white" : "text-gray-900"
                 }`}
               >
-                <Image src={"/logo.jpeg"} alt="logo" height={300} width={300} />
+                <Link href={"/"} className="cursor-pointer">
+                  <Image
+                    src={"/logo.jpeg"}
+                    alt="logo"
+                    height={300}
+                    width={300}
+                  />
+                </Link>
               </div>
             </div>
 

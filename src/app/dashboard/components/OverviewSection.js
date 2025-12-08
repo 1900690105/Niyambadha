@@ -89,7 +89,7 @@ export function OverviewSection({ darkMode, userDoc, sessions }) {
                 }
               `}
             >
-              Simple placeholder chart
+              Work under progress
             </span>
           </div>
 
@@ -138,7 +138,7 @@ export function OverviewSection({ darkMode, userDoc, sessions }) {
                 darkMode ? "text-slate-400" : "text-slate-500"
               }`}
             >
-              Live from extension
+              Live from extension(dummy data)
             </span>
           </div>
 

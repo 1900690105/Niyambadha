@@ -24,10 +24,9 @@ const CyberPuzzlePortal = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const [attempts, setAttempts] = useState(3);
+
   const [currentPaheli, setCurrentPaheli] = useState(paheliData[0]);
-
   const [showHint, setShowHint] = useState(false);
-
   const params = useSearchParams();
   const storedDomain = params.get("blocked");
 
@@ -37,6 +36,9 @@ const CyberPuzzlePortal = () => {
   );
 
   useEffect(() => {
+    const authInstance = getAuth();
+    const user = authInstance.currentUser;
+
     const randomIndex = Math.floor(Math.random() * paheliData.length);
     setCurrentPaheli(paheliData[randomIndex]);
   }, []);
@@ -55,7 +57,8 @@ const CyberPuzzlePortal = () => {
         const user = authInstance.currentUser;
 
         if (!user) {
-          console.error("❌ No logged-in user");
+          alert("❌ No logged-in user found");
+          window.location.href = "/auth/signup";
           return;
         }
 
@@ -503,16 +506,22 @@ const CyberPuzzlePortal = () => {
               Create Account?
             </Link>
             <span>|</span>
-            <a
-              href="#"
+            <Link
+              href="/about"
               className={`hover:${
                 isDark ? "text-cyan-400" : "text-indigo-600"
               }`}
             >
-              About Focus Portal
-            </a>
+              About Us
+            </Link>
           </div>
-          <p className="text-xs">Made with ❤️ for better productivity</p>
+          <p className="text-xs">
+            Made with ❤️ for better productivity by{" "}
+            <Link href={"https://nikhilkandhare.vercel.app/"}>
+              {" "}
+              Nikhil Kandhare{" "}
+            </Link>
+          </p>
         </div>
 
         <style jsx>{`

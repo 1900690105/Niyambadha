@@ -28,6 +28,7 @@ import { OverviewSection, SessionsSection } from "./components/OverviewSection";
 import { BlockedSection } from "./components/BloackedSites";
 import Image from "next/image";
 import { SettingsSection } from "./components/Settings";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -124,7 +125,9 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3 px-6 py-5 border-b border-white/5">
           <div>
             <div className="text-sm font-semibold tracking-wide w-16 h-16">
-              <Image src={"/logo.jpeg"} alt="logo" height={200} width={200} />
+              <Link href={"/"} className="cursor-pointer">
+                <Image src={"/logo.jpeg"} alt="logo" height={200} width={200} />
+              </Link>
             </div>
             <p className="text-xs text-slate-400">
               Stay sharp. Block distractions.
