@@ -24,6 +24,7 @@ const CyberPuzzlePortal = () => {
   const [countdown, setCountdown] = useState(null);
   const [attempts, setAttempts] = useState(3);
   const [currentPaheli, setCurrentPaheli] = useState(paheliData[0]);
+
   const [showHint, setShowHint] = useState(false);
 
   const params = useSearchParams();
@@ -33,6 +34,11 @@ const CyberPuzzlePortal = () => {
   const [redirectDomain, setRedirectDomain] = useState(
     storedDomain || "youtube.com"
   );
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * paheliData.length);
+    setCurrentPaheli(paheliData[randomIndex]);
+  }, []);
 
   // Pattern + math config
   const correctPattern = [0, 1, 2, 5, 8];
@@ -155,46 +161,6 @@ const CyberPuzzlePortal = () => {
       });
     }
   };
-
-  //   const giveFiveMinuteBonus = async () => {
-  //     try {
-  //       const authInstance = getAuth();
-  //       const user = authInstance.currentUser;
-
-  //       if (!user) {
-  //         console.error("❌ No logged-in user for bonus");
-  //         return;
-  //       }
-
-  //       const userRef = doc(db, "users", user.uid);
-  //       const snap = await getDoc(userRef);
-
-  //       if (!snap.exists()) {
-  //         console.error("❌ No user doc found for bonus");
-  //         return;
-  //       }
-
-  //       const data = snap.data();
-
-  //       // Try to read original time from multiple possible places
-  //       const originalTime =
-  //         data?.settings?.originalTimeMinutes ??
-  //         data?.settings?.watchTimeMinutes ??
-  //         data?.watchTimeMinutes ??
-  //         1;
-
-  //       console.log("ℹ️ Original time detected:", originalTime);
-
-  //       // 🔥 IMPORTANT: update the nested field, not just root
-  //       await updateDoc(userRef, {
-  //         "settings.watchTimeMinutes": originalTime,
-  //       });
-
-  //       console.log("✅ Watch time reset to:", originalTime);
-  //     } catch (error) {
-  //       console.error("❌ Error updating watch time:", error);
-  //     }
-  //   };
 
   const giveOriginalWatchTimeBack = async () => {
     try {
