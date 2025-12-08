@@ -20,7 +20,7 @@ function normalizeDomain(hostname) {
 async function fetchUserSettings() {
   try {
     const res = await fetch(
-      `http://localhost:3000/api/userdata?uid=${encodeURIComponent(
+      `${process.env.NEXT_PUBLIC_URL}/api/userdata?uid=${encodeURIComponent(
         userConfig.uid
       )}`
       // no credentials needed here, we use ?uid=
@@ -51,7 +51,9 @@ async function fetchUserSettings() {
 // ✅ Check redirect status for a domain from API
 async function fetchRedirectStatus(domain) {
   try {
-    const url = `http://localhost:3000/api/redirects?uid=${encodeURIComponent(
+    const url = `${
+      process.env.NEXT_PUBLIC_URL
+    }/api/redirects?uid=${encodeURIComponent(
       userConfig.uid
     )}&domain=${encodeURIComponent(domain)}`;
 
@@ -72,7 +74,7 @@ async function fetchRedirectStatus(domain) {
 
 // ✅ Log a redirect event for this domain in Firestore via API
 function logRedirect(domain) {
-  fetch("http://localhost:3000/api/redirects", {
+  fetch(`${process.env.NEXT_PUBLIC_URL}/api/redirects`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -139,7 +141,7 @@ async function startTimerForTab(tab) {
 
       // Immediate redirect to puzzle page, no extra watch time
       chrome.tabs.update(tab.id, {
-        url: "http://localhost:3000/",
+        url: `${process.env.NEXT_PUBLIC_URL}`,
       });
       return;
     }
@@ -180,7 +182,7 @@ async function startTimerForTab(tab) {
         // 🔥 Log redirect for this domain
         logRedirect(currentDomain);
 
-        fetch("http://localhost:3000/api/userdata/watchtime", {
+        fetch(`${process.env.NEXT_PUBLIC_URL}/api/userdata/watchtime`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -191,7 +193,7 @@ async function startTimerForTab(tab) {
 
         // (Optional) you can send domain as query param to puzzle page
         chrome.tabs.update(activeTabId, {
-          url: `http://localhost:3000/?blocked=${encodeURIComponent(
+          url: `${process.env.NEXT_PUBLIC_URL}/?blocked=${encodeURIComponent(
             currentDomain
           )}`,
         });
