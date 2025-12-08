@@ -11,6 +11,11 @@ let userConfig = {
   originalTimeMinutes: 1,
 };
 
+// ⏱️ Keep track of when we last fetched settings
+let lastSettingsFetch = 0;
+// How long settings are considered "fresh" (tune as you like)
+const SETTINGS_TTL_MS = 30 * 1000; // 30 seconds
+
 // 🧹 Helper to normalize domains (remove www.)
 function normalizeDomain(hostname) {
   return hostname.replace(/^www\./, "").toLowerCase();
@@ -20,10 +25,10 @@ function normalizeDomain(hostname) {
 async function fetchUserSettings() {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_URL}/api/userdata?uid=${encodeURIComponent(
+      `https://niyambadha.vercel.app/api/userdata?uid=${encodeURIComponent(
         userConfig.uid
       )}`
-      // no credentials needed here, we use ?uid=
+      // if your API ignores uid & uses cookies, this is still fine
     );
 
     if (!res.ok) {
@@ -42,18 +47,32 @@ async function fetchUserSettings() {
       originalTimeMinutes: data.settings?.originalTimeMinutes ?? 1,
     };
 
+    lastSettingsFetch = Date.now();
+
     console.log("✅ Loaded user config from API:", userConfig);
   } catch (err) {
     console.error("Error fetching user settings:", err);
   }
 }
 
+// ✅ Ensure we have fresh settings (re-fetch if too old / empty)
+async function ensureFreshSettings() {
+  const now = Date.now();
+
+  const needRefetch =
+    !userConfig.uid || // never loaded
+    !userConfig.blockedDomains.length || // empty config
+    now - lastSettingsFetch > SETTINGS_TTL_MS; // too old
+
+  if (needRefetch) {
+    await fetchUserSettings();
+  }
+}
+
 // ✅ Check redirect status for a domain from API
 async function fetchRedirectStatus(domain) {
   try {
-    const url = `${
-      process.env.NEXT_PUBLIC_URL
-    }/api/redirects?uid=${encodeURIComponent(
+    const url = `https://niyambadha.vercel.app/api/redirects?uid=${encodeURIComponent(
       userConfig.uid
     )}&domain=${encodeURIComponent(domain)}`;
 
@@ -74,7 +93,7 @@ async function fetchRedirectStatus(domain) {
 
 // ✅ Log a redirect event for this domain in Firestore via API
 function logRedirect(domain) {
-  fetch(`${process.env.NEXT_PUBLIC_URL}/api/redirects`, {
+  fetch("https://niyambadha.vercel.app/api/redirects", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -120,6 +139,10 @@ function shouldAutoRedirect(url) {
 // 🔁 Now async so we can call the new API
 async function startTimerForTab(tab) {
   if (!tab || !tab.id || !tab.url) return;
+
+  // 👇 Make sure we have fresh settings whenever we start a timer
+  await ensureFreshSettings();
+
   if (!shouldAutoRedirect(tab.url)) return;
 
   const url = tab.url;
@@ -141,7 +164,7 @@ async function startTimerForTab(tab) {
 
       // Immediate redirect to puzzle page, no extra watch time
       chrome.tabs.update(tab.id, {
-        url: `${process.env.NEXT_PUBLIC_URL}`,
+        url: "https://niyambadha.vercel.app/",
       });
       return;
     }
@@ -182,18 +205,27 @@ async function startTimerForTab(tab) {
         // 🔥 Log redirect for this domain
         logRedirect(currentDomain);
 
-        fetch(`${process.env.NEXT_PUBLIC_URL}/api/userdata/watchtime`, {
+        // 🔁 Update watchTimeMinutes in backend AND local config
+        fetch("https://niyambadha.vercel.app/api/userdata/watchtime", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             uid: userConfig.uid,
-            watchTimeMinutes: 0.1,
+            watchTimeMinutes: userConfig.originalTimeMinutes, // 6 seconds
           }),
-        }).catch((err) => console.error("Failed to update watch time:", err));
+        })
+          .then(() => {
+            // keep extension in sync immediately
+            userConfig.watchTimeMinutes = 0.1;
+            console.log(
+              "✅ watchTimeMinutes updated to 0.1 in backend & local"
+            );
+          })
+          .catch((err) => console.error("Failed to update watch time:", err));
 
         // (Optional) you can send domain as query param to puzzle page
         chrome.tabs.update(activeTabId, {
-          url: `${process.env.NEXT_PUBLIC_URL}/?blocked=${encodeURIComponent(
+          url: `https://niyambadha.vercel.app/?blocked=${encodeURIComponent(
             currentDomain
           )}`,
         });
@@ -217,7 +249,7 @@ function stopTimer() {
 // 🔁 Event wiring
 // ────────────────────────────
 
-// Load user settings once when the extension starts
+// Load user settings once when the extension starts (warm up)
 fetchUserSettings();
 
 // Optionally refresh settings when installed / updated

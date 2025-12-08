@@ -12,9 +12,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
 import { auth, db } from "../../lib/firebase";
-
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import {
   doc,
@@ -26,12 +24,10 @@ import {
   limit,
 } from "firebase/firestore";
 
-import {
-  BlockedSection,
-  OverviewSection,
-  SessionsSection,
-  SettingsSection,
-} from "./components/OverviewSection";
+import { OverviewSection, SessionsSection } from "./components/OverviewSection";
+import { BlockedSection } from "./components/BloackedSites";
+import Image from "next/image";
+import { SettingsSection } from "./components/Settings";
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -126,11 +122,10 @@ export default function DashboardPage() {
         `}
       >
         <div className="flex items-center gap-3 px-6 py-5 border-b border-white/5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
-            <Focus className="w-6 h-6 text-white" />
-          </div>
           <div>
-            <p className="text-sm font-semibold tracking-wide">Niyambadha</p>
+            <div className="text-sm font-semibold tracking-wide w-16 h-16">
+              <Image src={"/logo.jpeg"} alt="logo" height={200} width={200} />
+            </div>
             <p className="text-xs text-slate-400">
               Stay sharp. Block distractions.
             </p>
@@ -150,7 +145,7 @@ export default function DashboardPage() {
                   transition-colors
                   ${
                     isActive
-                      ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow"
+                      ? "bg-linear-to-r from-indigo-600 to-cyan-600 text-white shadow"
                       : darkMode
                       ? "text-slate-300 hover:bg-slate-800"
                       : "text-slate-700 hover:bg-slate-100"
@@ -257,6 +252,7 @@ export default function DashboardPage() {
               )}
               {activeTab === "blocked" && (
                 <BlockedSection
+                  userDoc={userDoc}
                   darkMode={darkMode}
                   blockedDomains={userDoc?.blockedDomains || []}
                 />
@@ -264,6 +260,7 @@ export default function DashboardPage() {
               {activeTab === "settings" && (
                 <SettingsSection
                   darkMode={darkMode}
+                  userDoc={userDoc}
                   userSettings={userDoc?.settings || {}}
                 />
               )}

@@ -9,8 +9,6 @@ import {
   ChevronUp,
   Loader2,
 } from "lucide-react";
-
-// 🔥 Firebase imports (adjust path to your project structure)
 import { auth, db } from "../../../lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -258,8 +256,8 @@ export default function CreateFocusAccount() {
     <div
       className={`min-h-screen ${
         darkMode
-          ? "bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950"
-          : "bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50"
+          ? "bg-linear-to-br from-slate-950 via-slate-900 to-indigo-950"
+          : "bg-linear-to-br from-slate-50 via-indigo-50 to-cyan-50"
       } flex items-center justify-center p-4 transition-colors duration-300`}
     >
       {/* Theme Toggle */}
@@ -282,7 +280,7 @@ export default function CreateFocusAccount() {
           {/* Header */}
           <div className="text-center mb-8">
             <div
-              className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg`}
+              className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-linear-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg`}
             >
               <Focus className="w-8 h-8 text-white" />
             </div>
@@ -656,7 +654,7 @@ export default function CreateFocusAccount() {
               type="button"
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full py-4 rounded-lg bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-semibold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-lg bg-linear-to-r from-indigo-600 to-cyan-600 text-white font-semibold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

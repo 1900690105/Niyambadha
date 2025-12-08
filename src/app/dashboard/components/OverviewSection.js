@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 const {
   Globe2,
   Shield,
@@ -11,6 +13,7 @@ export function OverviewSection({ darkMode, userDoc, sessions }) {
   const blockedCount = userDoc?.blockedDomains?.length || 0;
 
   const mostBlockedSite = userDoc?.blockedDomains?.[0] || "No sites yet";
+
   return (
     <div className="space-y-6">
       {/* Stats cards */}
@@ -107,7 +110,7 @@ export function OverviewSection({ darkMode, userDoc, sessions }) {
               >
                 <div
                   className={`
-                    w-full rounded-t-xl bg-gradient-to-t from-indigo-600 to-cyan-500
+                    w-full rounded-t-xl bg-linear-to-t from-indigo-600 to-cyan-500
                     ${darkMode ? "" : ""}
                   `}
                   style={{ height: `${d.value}%` }}
@@ -185,7 +188,7 @@ function StatCard({ title, value, subtitle, icon: Icon, accent, darkMode }) {
     >
       <div
         className={`
-          w-10 h-10 rounded-xl bg-gradient-to-br ${accent}
+          w-10 h-10 rounded-xl bg-linear-to-br ${accent}
           flex items-center justify-center text-white
         `}
       >
@@ -269,7 +272,7 @@ export function SessionsSection({ darkMode, sessions }) {
         </div>
         <button
           type="button"
-          className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-transform"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold bg-linear-to-r from-indigo-600 to-cyan-600 text-white shadow hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-transform"
         >
           Start new session
         </button>
@@ -336,199 +339,4 @@ export function SessionsSection({ darkMode, sessions }) {
 
 /* -------- Blocked Sites -------- */
 
-export function BlockedSection({ darkMode, blockedDomains }) {
-  const data = blockedDomains.map((d) => ({
-    domain: d,
-    redirects: 0, // TODO: replace with real count when you store it
-    today: 0,
-  }));
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold">Blocked websites</h2>
-          <p
-            className={`text-xs ${
-              darkMode ? "text-slate-400" : "text-slate-500"
-            }`}
-          >
-            Overview of domains currently blocked by your Focus extension.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold border border-dashed
-          hover:border-indigo-500/70 hover:text-indigo-400"
-        >
-          Manage block list
-        </button>
-      </div>
-
-      <div
-        className={`
-          rounded-2xl border overflow-hidden text-xs
-          ${
-            darkMode
-              ? "border-slate-800 bg-slate-900/60"
-              : "border-slate-200 bg-white"
-          }
-        `}
-      >
-        <div
-          className={`
-            grid grid-cols-3 gap-2 px-3 py-2 border-b text-[11px] font-semibold
-            ${
-              darkMode
-                ? "border-slate-800 text-slate-300"
-                : "border-slate-200 text-slate-600"
-            }
-          `}
-        >
-          <span>Domain</span>
-          <span>Total redirects</span>
-          <span>Today</span>
-        </div>
-        <div>
-          {data.map((b) => (
-            <div
-              key={b.domain}
-              className={`
-                grid grid-cols-3 gap-2 px-3 py-2.5 items-center
-                ${darkMode ? "hover:bg-slate-800/70" : "hover:bg-slate-50"}
-              `}
-            >
-              <span className="flex items-center gap-1.5">
-                <Globe2 className="w-3.5 h-3.5 text-slate-400" />
-                <span>{b.domain}</span>
-              </span>
-              <span>{b.redirects}</span>
-              <span className="text-slate-400">{b.today}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* -------- Settings -------- */
-
-export function SettingsSection({ darkMode, userSettings }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-base font-semibold">Settings</h2>
-        <p
-          className={`text-xs ${
-            darkMode ? "text-slate-400" : "text-slate-500"
-          }`}
-        >
-          Control how Focus behaves on your browser and devices.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div
-          className={`
-            rounded-2xl p-4 border space-y-3
-            ${
-              darkMode
-                ? "border-slate-800 bg-slate-900/60"
-                : "border-slate-200 bg-white"
-            }
-          `}
-        >
-          <h3 className="text-sm font-semibold">Focus behavior</h3>
-          <div className="space-y-3 text-xs">
-            <SettingRow
-              darkMode={darkMode}
-              title="Block entire domain"
-              description="If enabled, all pages under a domain will be blocked, not just specific URLs."
-            />
-            <SettingRow
-              darkMode={darkMode}
-              title="Redirect after 30 seconds"
-              description="After 30 seconds spent on a blocked site, redirect to the puzzle page."
-            />
-            <SettingRow
-              darkMode={darkMode}
-              title="Enable sound on redirect"
-              description="Play a soft sound when you are redirected away from a blocked site."
-              disabled
-            />
-          </div>
-        </div>
-
-        <div
-          className={`
-            rounded-2xl p-4 border space-y-3
-            ${
-              darkMode
-                ? "border-slate-800 bg-slate-900/60"
-                : "border-slate-200 bg-white"
-            }
-          `}
-        >
-          <h3 className="text-sm font-semibold">Sync & account</h3>
-          <div className="space-y-3 text-xs">
-            <SettingRow
-              darkMode={darkMode}
-              title="Sync settings to cloud"
-              description="Keep your blocked websites and preferences synced across devices."
-            />
-            <SettingRow
-              darkMode={darkMode}
-              title="Weekly focus summary email"
-              description="Receive a summary of your focus stats every week."
-            />
-            <SettingRow
-              darkMode={darkMode}
-              title="Beta features"
-              description="Try new Focus experiments before they are released to everyone."
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SettingRow({ title, description, disabled, darkMode }) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className={`text-xs font-medium ${disabled ? "opacity-60" : ""}`}>
-          {title}
-        </p>
-        <p
-          className={`text-[11px] ${
-            darkMode ? "text-slate-500" : "text-slate-500"
-          } ${disabled ? "opacity-60" : ""}`}
-        >
-          {description}
-        </p>
-      </div>
-      <button
-        type="button"
-        disabled={disabled}
-        className={`
-          relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors
-          ${
-            disabled
-              ? "bg-slate-700 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-500"
-          }
-        `}
-      >
-        <span
-          aria-hidden="true"
-          className={`
-            pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform
-            translate-x-4
-          `}
-        />
-      </button>
-    </div>
-  );
-}
