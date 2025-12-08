@@ -12,6 +12,7 @@ import { PaheliPuzzle } from "./PaheliPuzzle";
 import { PatternPuzzle } from "./PatternPuzzle";
 import { MathPuzzle } from "./MathPuzzle";
 import { paheliData } from "../data";
+import Link from "next/link";
 
 const CyberPuzzlePortal = () => {
   const [isDark, setIsDark] = useState(true);
@@ -488,15 +489,19 @@ const CyberPuzzlePortal = () => {
             ${isDark ? "text-gray-500" : "text-gray-600"}
           `}
         >
+          <p>
+            If you don&#39;t create account or logged in then platform work on
+            default values,so please make sure you create your account.
+          </p>
           <div className="flex items-center justify-center gap-4 mb-2">
-            <a
-              href="#"
+            <Link
+              href={"/auth/signup"}
               className={`hover:${
                 isDark ? "text-cyan-400" : "text-indigo-600"
               }`}
             >
-              Need help?
-            </a>
+              Create Account?
+            </Link>
             <span>|</span>
             <a
               href="#"

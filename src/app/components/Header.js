@@ -1,8 +1,11 @@
 import { HelpCircle, Lock, Moon, Sun } from "lucide-react";
 import Image from "next/image";
+import { useParams } from "next/navigation";
 import React from "react";
 
 function Header({ isDark, setShowHelp, showHelp, setIsDark }) {
+  const params = useParams();
+
   return (
     <>
       <header>
@@ -29,17 +32,19 @@ function Header({ isDark, setShowHelp, showHelp, setIsDark }) {
             </div>
 
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowHelp(!showHelp)}
-                className={`text-sm flex items-center gap-1 ${
-                  isDark
-                    ? "text-gray-400 hover:text-cyan-400"
-                    : "text-gray-600 hover:text-indigo-600"
-                }`}
-              >
-                <HelpCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Why am I here?</span>
-              </button>
+              {!params == "about" && (
+                <button
+                  onClick={() => setShowHelp(!showHelp)}
+                  className={`text-sm flex items-center gap-1 ${
+                    isDark
+                      ? "text-gray-400 hover:text-cyan-400"
+                      : "text-gray-600 hover:text-indigo-600"
+                  }`}
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Why am I here?</span>
+                </button>
+              )}
 
               <button
                 onClick={() => setIsDark(!isDark)}
