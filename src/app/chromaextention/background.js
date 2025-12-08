@@ -5,7 +5,7 @@ let timeoutId = null;
 // 🔥 User settings loaded from your Next.js API
 let userConfig = {
   uid: "", // will be overwritten by API
-  blockedDomains: [],
+  blockedDomains: ["youtube.com"],
   watchTimeMinutes: 1, // default fallback
   blockEntireDomain: true,
   originalTimeMinutes: 1,

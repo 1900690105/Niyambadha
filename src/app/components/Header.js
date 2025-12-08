@@ -20,7 +20,7 @@ function Header({ isDark, setShowHelp, showHelp, setIsDark }) {
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
-                className={`text-xl font-extrabold h-16 w-16 mt-0 ${
+                className={`text-xl font-extrabold h-24 w-24 mt-16 ${
                   isDark ? "text-white" : "text-gray-900"
                 }`}
               >
