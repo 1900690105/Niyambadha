@@ -211,8 +211,18 @@ export default function CreateFocusAccount() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
-      alert("Account created successfully and settings saved!");
 
+      if (typeof window !== "undefined") {
+        window.postMessage(
+          {
+            type: "NIYAMBADHA_UID_CONNECTED",
+            uid: user.uid,
+            email: user.email,
+          },
+          "*"
+        );
+      }
+      alert("Account created successfully and settings saved!");
       window.location.href = `/dashboard`;
 
       // Optional: reset form

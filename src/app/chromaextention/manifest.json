@@ -6,11 +6,18 @@
   "version": "1.0.0",
   "version_name": "1.0.0 Stable",
   "author": "Niyambadha Team",
-  "permissions": ["tabs", "scripting", "activeTab"],
+  "permissions": ["tabs", "scripting", "activeTab","storage"],
   "host_permissions": [
     "https://niyambadha.vercel.app/*",
     "http://localhost:3000/*",
     "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://niyambadha.vercel.app/*", "http://localhost:3000/*"],
+      "js": ["contentScript.js"],
+      "run_at": "document_start"
+    }
   ],
   "background": {
     "service_worker": "background.js"

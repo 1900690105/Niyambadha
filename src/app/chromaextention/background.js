@@ -4,7 +4,7 @@ let timeoutId = null;
 
 // 🔥 User settings loaded from your Next.js API
 let userConfig = {
-  uid: "6N7RNWbZOecoWQ8uyBWTdFHssvR2", // will be overwritten by API
+  uid: null, // will be filled dynamically
   blockedDomains: ["youtube.com"], // default, in case API fails
   watchTimeMinutes: 1, // default fallback
   blockEntireDomain: true,
@@ -13,16 +13,57 @@ let userConfig = {
 
 // ⏱️ Keep track of when we last fetched settings
 let lastSettingsFetch = 0;
-// How long settings are considered "fresh" (tune as you like)
 const SETTINGS_TTL_MS = 30 * 1000; // 30 seconds
+
+// 👇 Prevent opening multiple signup tabs
+let signupTabOpened = false;
 
 // 🧹 Helper to normalize domains (remove www.)
 function normalizeDomain(hostname) {
   return hostname.replace(/^www\./, "").toLowerCase();
 }
 
+// 🌟 Get UID from chrome.storage.sync
+function getUidFromStorage() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(["userUid"], (result) => {
+      resolve(result.userUid || null);
+    });
+  });
+}
+
+// ✅ Ensure we have a UID before doing anything
+async function ensureUid() {
+  if (userConfig.uid) return true;
+
+  const storedUid = await getUidFromStorage();
+  if (storedUid) {
+    userConfig.uid = storedUid;
+    console.log("✅ Loaded UID from storage:", storedUid);
+    return true;
+  }
+
+  console.warn("⚠️ No UID found in storage");
+
+  // 👉 Optional: open signup page if not logged in
+  if (!signupTabOpened) {
+    signupTabOpened = true;
+    chrome.tabs.create({
+      url: "http://localhost:3000/auth/signup",
+    });
+  }
+
+  return false;
+}
+
 // 🔗 Call your Next.js API to get user data from Firestore
 async function fetchUserSettings() {
+  const hasUid = await ensureUid();
+  if (!hasUid) {
+    console.warn("⏹ Stopping fetchUserSettings: no UID");
+    return;
+  }
+
   try {
     const res = await fetch(
       `https://niyambadha.vercel.app/api/userdata?uid=${encodeURIComponent(
@@ -38,8 +79,20 @@ async function fetchUserSettings() {
     const json = await res.json();
     const data = json.data || {};
 
+    // If no data found for this UID, you might want to send user to signup/update page
+    if (!json.data) {
+      console.warn("⚠️ No user data found for this UID");
+      if (!signupTabOpened) {
+        signupTabOpened = true;
+        chrome.tabs.create({
+          url: "http://localhost:3000/auth/signup",
+        });
+      }
+      return;
+    }
+
     userConfig = {
-      uid: json.uid,
+      uid: json.uid || userConfig.uid,
       blockedDomains: data.blockedDomains || [],
       watchTimeMinutes: data.settings?.watchTimeMinutes ?? 1,
       blockEntireDomain: data.settings?.blockEntireDomain ?? true,
@@ -56,23 +109,30 @@ async function fetchUserSettings() {
 
 // ✅ Ensure we have fresh settings (re-fetch if too old / empty / penalized)
 async function ensureFreshSettings() {
+  const hasUid = await ensureUid();
+  if (!hasUid) return false;
+
   const now = Date.now();
 
   const needRefetch =
-    !userConfig.uid || // never loaded
     !userConfig.blockedDomains.length || // empty config
     now - lastSettingsFetch > SETTINGS_TTL_MS || // too old
-    userConfig.watchTimeMinutes === 0.1; // 🔥 in penalty mode → always refresh
+    userConfig.watchTimeMinutes === 0.1; // in penalty mode → always refresh
 
   if (needRefetch) {
     await fetchUserSettings();
   }
+
+  return true;
 }
 
 // ✅ Check redirect status for a domain from API
 async function fetchRedirectStatus(domain) {
+  const hasUid = await ensureUid();
+  if (!hasUid) return null;
+
   try {
-    const url = `https://niyambadha.vercel.app/api/redirects?uid=${encodeURIComponent(
+    const url = `http://localhost:3000/api/redirects?uid=${encodeURIComponent(
       userConfig.uid
     )}&domain=${encodeURIComponent(domain)}`;
 
@@ -83,8 +143,7 @@ async function fetchRedirectStatus(domain) {
     }
 
     const json = await res.json();
-    // expected: { exists: boolean, data?: { puzzleSolvedAt?: ... } }
-    return json;
+    return json; // { exists: boolean, data?: {...} }
   } catch (err) {
     console.error("Error fetching redirect status:", err);
     return null;
@@ -92,8 +151,11 @@ async function fetchRedirectStatus(domain) {
 }
 
 // ✅ Log a redirect event for this domain in Firestore via API
-function logRedirect(domain) {
-  fetch("https://niyambadha.vercel.app/api/redirects", {
+async function logRedirect(domain) {
+  const hasUid = await ensureUid();
+  if (!hasUid) return;
+
+  fetch("http://localhost:3000/api/redirects", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -114,11 +176,9 @@ function shouldAutoRedirect(url) {
     const domain = normalizeDomain(u.hostname);
 
     if (!userConfig.blockedDomains || userConfig.blockedDomains.length === 0) {
-      // No config / nothing to block → do nothing
       return false;
     }
 
-    // Check if this domain matches any blocked domain
     return userConfig.blockedDomains.some((blocked) => {
       const blockedDomain = blocked.toLowerCase();
 
@@ -140,7 +200,11 @@ async function startTimerForTab(tab) {
   if (!tab || !tab.id || !tab.url) return;
 
   // 👇 Make sure we have fresh settings whenever we start a timer
-  await ensureFreshSettings();
+  const ok = await ensureFreshSettings();
+  if (!ok) {
+    console.warn("⏹ Not starting timer: no UID / settings");
+    return;
+  }
 
   if (!shouldAutoRedirect(tab.url)) return;
 
@@ -161,22 +225,19 @@ async function startTimerForTab(tab) {
         domain
       );
 
-      // Immediate redirect to puzzle page, no extra watch time
       chrome.tabs.update(tab.id, {
-        url: "https://niyambadha.vercel.app/",
+        url: "http://localhost:3000/",
       });
       return;
     }
   } catch (err) {
     console.error("Error checking redirect status:", err);
-    // If it fails, we still fall back to timer below
+    // fall through to timer
   }
 
-  // Use watchTimeMinutes from userConfig (default to 1 minute if missing)
   const minutes = userConfig.watchTimeMinutes || 1;
   const timeoutDurationMs = minutes * 60 * 1000;
 
-  // Clear previous timer and set domain for this tab
   clearTimeout(timeoutId);
   activeTabId = tab.id;
   activeTabDomain = domain;
@@ -192,7 +253,6 @@ async function startTimerForTab(tab) {
       try {
         const currentDomain = normalizeDomain(new URL(currentTab.url).hostname);
 
-        // If user navigated away to a different domain, don't redirect
         if (currentDomain !== activeTabDomain) {
           console.log(
             "ℹ️ Domain changed before timeout, not redirecting:",
@@ -205,11 +265,9 @@ async function startTimerForTab(tab) {
         logRedirect(currentDomain);
 
         // 🚨 LOCK USER *BEFORE* redirect
-        // 1) Update local config immediately so any new timers use 0.1
         userConfig.watchTimeMinutes = 0.1;
 
-        // 2) Update backend (fire-and-forget)
-        fetch("https://niyambadha.vercel.app/api/userdata/watchtime", {
+        fetch("http://localhost:3000/api/userdata/watchtime", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -218,9 +276,8 @@ async function startTimerForTab(tab) {
           }),
         }).catch((err) => console.error("Failed to update watch time:", err));
 
-        // 3) Redirect to puzzle portal with domain
         chrome.tabs.update(activeTabId, {
-          url: `https://niyambadha.vercel.app/?blocked=${encodeURIComponent(
+          url: `http://localhost:3000/?blocked=${encodeURIComponent(
             currentDomain
           )}`,
         });
@@ -246,10 +303,10 @@ function stopTimer() {
 // 🔁 Event wiring
 // ────────────────────────────
 
-// Load user settings once when the extension starts (warm up)
+// Warm-up: load settings if UID already exists
 fetchUserSettings();
 
-// Optionally refresh settings when installed / updated
+// Also refresh settings when installed / updated
 chrome.runtime.onInstalled.addListener(() => {
   fetchUserSettings();
 });
@@ -306,330 +363,8 @@ chrome.runtime.onSuspend.addListener(() => {
 
 // // 🔥 User settings loaded from your Next.js API
 // let userConfig = {
-//   uid: "", // will be set later (e.g. via message from your portal)
-//   blockedDomains: ["youtube.com"], // default until we know real config
-//   watchTimeMinutes: 1, // default fallback
-//   blockEntireDomain: true,
-//   originalTimeMinutes: 1,
-// };
-
-// // ⏱️ Keep track of when we last fetched settings
-// let lastSettingsFetch = 0;
-// // How long settings are considered "fresh"
-// const SETTINGS_TTL_MS = 30 * 1000; // 30 seconds
-
-// // 🧹 Helper to normalize domains (remove www.)
-// function normalizeDomain(hostname) {
-//   return hostname.replace(/^www\./, "").toLowerCase();
-// }
-
-// // 🔗 Call your Next.js API to get user data from Firestore
-// async function fetchUserSettings() {
-//   // ❗ If we don't know the uid yet, skip remote fetch
-//   if (!userConfig.uid) {
-//     console.log(
-//       "[Niyambadha] No uid set yet, using local defaults (e.g. youtube.com)."
-//     );
-//     return;
-//   }
-
-//   try {
-//     const res = await fetch(
-//       `https://niyambadha.vercel.app/api/userdata?uid=${encodeURIComponent(
-//         userConfig.uid
-//       )}`
-//     );
-
-//     if (!res.ok) {
-//       console.error("Failed to fetch user settings:", res.status);
-//       return;
-//     }
-
-//     const json = await res.json();
-//     const data = json.data || {};
-
-//     userConfig = {
-//       uid: json.uid,
-//       blockedDomains: data.blockedDomains || [],
-//       watchTimeMinutes: data.settings?.watchTimeMinutes ?? 1,
-//       blockEntireDomain: data.settings?.blockEntireDomain ?? true,
-//       originalTimeMinutes: data.settings?.originalTimeMinutes ?? 1,
-//     };
-
-//     lastSettingsFetch = Date.now();
-
-//     console.log("✅ Loaded user config from API:", userConfig);
-//   } catch (err) {
-//     console.error("Error fetching user settings:", err);
-//   }
-// }
-
-// // ✅ Ensure we have fresh settings (re-fetch if too old / empty)
-// async function ensureFreshSettings() {
-//   const now = Date.now();
-
-//   const needRefetch =
-//     !!userConfig.uid && // only refetch if we actually know a uid
-//     (!userConfig.blockedDomains.length ||
-//       now - lastSettingsFetch > SETTINGS_TTL_MS);
-
-//   if (needRefetch) {
-//     await fetchUserSettings();
-//   }
-// }
-
-// // ✅ Check redirect status for a domain from API
-// async function fetchRedirectStatus(domain) {
-//   if (!userConfig.uid) return null; // no user, no redirects
-
-//   try {
-//     const url = `https://niyambadha.vercel.app/api/redirects?uid=${encodeURIComponent(
-//       userConfig.uid
-//     )}&domain=${encodeURIComponent(domain)}`;
-
-//     const res = await fetch(url);
-//     if (!res.ok) {
-//       console.error("Failed to fetch redirect status:", res.status);
-//       return null;
-//     }
-
-//     const json = await res.json();
-//     // expected: { exists: boolean, data?: { puzzleSolvedAt?: ... } }
-//     return json;
-//   } catch (err) {
-//     console.error("Error fetching redirect status:", err);
-//     return null;
-//   }
-// }
-
-// // ✅ Log a redirect event for this domain in Firestore via API
-// function logRedirect(domain) {
-//   if (!userConfig.uid) return; // nothing to log without user
-
-//   fetch("https://niyambadha.vercel.app/api/redirects", {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({
-//       uid: userConfig.uid,
-//       domain,
-//     }),
-//   }).catch((err) => {
-//     console.error("Failed to log redirect:", err);
-//   });
-// }
-
-// // Decide which URLs should trigger the redirect (domain-based)
-// function shouldAutoRedirect(url) {
-//   try {
-//     const u = new URL(url);
-//     const domain = normalizeDomain(u.hostname);
-
-//     if (!userConfig.blockedDomains || userConfig.blockedDomains.length === 0) {
-//       // No config / nothing to block → do nothing
-//       return false;
-//     }
-
-//     // Check if this domain matches any blocked domain
-//     return userConfig.blockedDomains.some((blocked) => {
-//       const blockedDomain = blocked.toLowerCase();
-
-//       if (userConfig.blockEntireDomain) {
-//         // "youtube.com" matches "youtube.com" and "m.youtube.com"
-//         return domain === blockedDomain || domain.endsWith("." + blockedDomain);
-//       } else {
-//         // Strict domain match only
-//         return domain === blockedDomain;
-//       }
-//     });
-//   } catch (e) {
-//     return false;
-//   }
-// }
-
-// // 🔁 Now async so we can call the new API
-// async function startTimerForTab(tab) {
-//   if (!tab || !tab.id || !tab.url) return;
-
-//   // 👇 Make sure we have fresh settings whenever we start a timer
-//   await ensureFreshSettings();
-
-//   if (!shouldAutoRedirect(tab.url)) return;
-
-//   const url = tab.url;
-//   let domain;
-//   try {
-//     domain = normalizeDomain(new URL(url).hostname);
-//   } catch {
-//     return;
-//   }
-
-//   // 🔍 Check if this domain is already in redirect table and puzzle not solved
-//   try {
-//     const status = await fetchRedirectStatus(domain);
-//     if (status && status.exists && status.data && !status.data.puzzleSolvedAt) {
-//       console.log(
-//         "⚠️ Domain already redirected & puzzle not solved, instant redirect:",
-//         domain
-//       );
-
-//       // Immediate redirect to puzzle page, no extra watch time
-//       chrome.tabs.update(tab.id, {
-//         url: "https://niyambadha.vercel.app/",
-//       });
-//       return;
-//     }
-//   } catch (err) {
-//     console.error("Error checking redirect status:", err);
-//     // If it fails, we still fall back to timer below
-//   }
-
-//   // Use watchTimeMinutes from userConfig (default to 1 minute if missing)
-//   const minutes = userConfig.watchTimeMinutes || 1;
-//   const timeoutDurationMs = minutes * 60 * 1000;
-
-//   // Clear previous timer and set domain for this tab
-//   clearTimeout(timeoutId);
-//   activeTabId = tab.id;
-//   activeTabDomain = domain;
-
-//   console.log(
-//     `⏱️ Starting timer for tab ${activeTabId} on domain ${domain} for ${minutes} min`
-//   );
-
-//   timeoutId = setTimeout(() => {
-//     chrome.tabs.get(activeTabId, (currentTab) => {
-//       if (chrome.runtime.lastError || !currentTab) return;
-
-//       try {
-//         const currentDomain = normalizeDomain(new URL(currentTab.url).hostname);
-
-//         // If user navigated away to a different domain, don't redirect
-//         if (currentDomain !== activeTabDomain) {
-//           console.log(
-//             "ℹ️ Domain changed before timeout, not redirecting:",
-//             currentDomain
-//           );
-//           return;
-//         }
-
-//         // 🔥 Log redirect for this domain (if we have a user)
-//         logRedirect(currentDomain);
-
-//         // 🔁 Update watchTimeMinutes in backend AND local config
-//         if (userConfig.uid) {
-//           fetch("https://niyambadha.vercel.app/api/userdata/watchtime", {
-//             method: "PATCH",
-//             headers: { "Content-Type": "application/json" },
-//             body: JSON.stringify({
-//               uid: userConfig.uid,
-//               watchTimeMinutes: userConfig.originalTimeMinutes, // or 0.1 if you want short window
-//             }),
-//           })
-//             .then(() => {
-//               // keep extension in sync immediately if you want short 0.1 min
-//               // userConfig.watchTimeMinutes = 0.1;
-//               console.log("✅ watchTimeMinutes updated in backend");
-//             })
-//             .catch((err) => console.error("Failed to update watch time:", err));
-//         }
-
-//         // (Optional) you can send domain as query param to puzzle page
-//         chrome.tabs.update(activeTabId, {
-//           url: `https://niyambadha.vercel.app/?blocked=${encodeURIComponent(
-//             currentDomain
-//           )}`,
-//         });
-//         console.log(`⛔ Redirected after ${minutes} min →`, currentDomain);
-//       } catch (e) {
-//         console.error("Error during redirect:", e);
-//       }
-//     });
-//   }, timeoutDurationMs);
-// }
-
-// function stopTimer() {
-//   clearTimeout(timeoutId);
-//   timeoutId = null;
-//   activeTabId = null;
-//   activeTabDomain = null;
-// }
-
-// // ────────────────────────────
-// // 🔁 Event wiring
-// // ────────────────────────────
-
-// // 👉 When the extension is installed the FIRST time, open signup page
-// chrome.runtime.onInstalled.addListener((details) => {
-//   if (details.reason === "install") {
-//     chrome.tabs.create({
-//       url: "https://niyambadha.vercel.app/auth/signup",
-//     });
-//   }
-
-//   // You can still attempt to load settings if uid is known later
-//   fetchUserSettings();
-// });
-
-// // When active tab changes → start timer for that tab/domain
-// chrome.tabs.onActivated.addListener((activeInfo) => {
-//   stopTimer();
-//   chrome.tabs.get(activeInfo.tabId, (tab) => {
-//     if (chrome.runtime.lastError || !tab) return;
-//     startTimerForTab(tab); // async but we don't need to await
-//   });
-// });
-
-// // When URL of active tab changes
-// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-//   if (!tab.active) return;
-//   if (!changeInfo.url) return;
-
-//   let newDomain;
-//   try {
-//     newDomain = normalizeDomain(new URL(changeInfo.url).hostname);
-//   } catch {
-//     return;
-//   }
-
-//   // ❌ If same tab + same domain → do NOT reset timer
-//   if (tabId === activeTabId && newDomain === activeTabDomain) {
-//     return;
-//   }
-
-//   // ✅ Domain changed → restart timer logic for new domain
-//   stopTimer();
-//   startTimerForTab(tab);
-// });
-
-// // When Chrome loses / gains focus
-// chrome.windows.onFocusChanged.addListener((windowId) => {
-//   if (windowId === chrome.windows.WINDOW_ID_NONE) {
-//     // User left Chrome → stop counting
-//     stopTimer();
-//   } else {
-//     // User came back to Chrome → restart on current tab
-//     chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
-//       if (!tabs || !tabs[0]) return;
-//       startTimerForTab(tabs[0]);
-//     });
-//   }
-// });
-
-// // Clean up when extension is unloading
-// chrome.runtime.onSuspend.addListener(() => {
-//   stopTimer();
-// });
-
-// let activeTabId = null;
-// let activeTabDomain = null;
-// let timeoutId = null;
-
-// // 🔥 User settings loaded from your Next.js API
-// let userConfig = {
-//   uid: "", // will be overwritten by API
-//   blockedDomains: ["youtube.com"],
+//   uid: "vxJQXtZ6ncUsnYvvkiITDau1ZqP2", // will be overwritten by API
+//   blockedDomains: ["youtube.com"], // default, in case API fails
 //   watchTimeMinutes: 1, // default fallback
 //   blockEntireDomain: true,
 //   originalTimeMinutes: 1,
@@ -652,7 +387,6 @@ chrome.runtime.onSuspend.addListener(() => {
 //       `https://niyambadha.vercel.app/api/userdata?uid=${encodeURIComponent(
 //         userConfig.uid
 //       )}`
-//       // if your API ignores uid & uses cookies, this is still fine
 //     );
 
 //     if (!res.ok) {
@@ -679,14 +413,15 @@ chrome.runtime.onSuspend.addListener(() => {
 //   }
 // }
 
-// // ✅ Ensure we have fresh settings (re-fetch if too old / empty)
+// // ✅ Ensure we have fresh settings (re-fetch if too old / empty / penalized)
 // async function ensureFreshSettings() {
 //   const now = Date.now();
 
 //   const needRefetch =
 //     !userConfig.uid || // never loaded
 //     !userConfig.blockedDomains.length || // empty config
-//     now - lastSettingsFetch > SETTINGS_TTL_MS; // too old
+//     now - lastSettingsFetch > SETTINGS_TTL_MS || // too old
+//     userConfig.watchTimeMinutes === 0.1; // 🔥 in penalty mode → always refresh
 
 //   if (needRefetch) {
 //     await fetchUserSettings();
@@ -696,7 +431,7 @@ chrome.runtime.onSuspend.addListener(() => {
 // // ✅ Check redirect status for a domain from API
 // async function fetchRedirectStatus(domain) {
 //   try {
-//     const url = `https://niyambadha.vercel.app/api/redirects?uid=${encodeURIComponent(
+//     const url = `http://localhost:3000/api/redirects?uid=${encodeURIComponent(
 //       userConfig.uid
 //     )}&domain=${encodeURIComponent(domain)}`;
 
@@ -717,7 +452,7 @@ chrome.runtime.onSuspend.addListener(() => {
 
 // // ✅ Log a redirect event for this domain in Firestore via API
 // function logRedirect(domain) {
-//   fetch("https://niyambadha.vercel.app/api/redirects", {
+//   fetch("http://localhost:3000/api/redirects", {
 //     method: "POST",
 //     headers: {
 //       "Content-Type": "application/json",
@@ -747,7 +482,6 @@ chrome.runtime.onSuspend.addListener(() => {
 //       const blockedDomain = blocked.toLowerCase();
 
 //       if (userConfig.blockEntireDomain) {
-//         // Block entire domain tree:
 //         // "youtube.com" matches "youtube.com" and "m.youtube.com"
 //         return domain === blockedDomain || domain.endsWith("." + blockedDomain);
 //       } else {
@@ -788,7 +522,7 @@ chrome.runtime.onSuspend.addListener(() => {
 
 //       // Immediate redirect to puzzle page, no extra watch time
 //       chrome.tabs.update(tab.id, {
-//         url: "https://niyambadha.vercel.app/",
+//         url: "http://localhost:3000/",
 //       });
 //       return;
 //     }
@@ -829,32 +563,30 @@ chrome.runtime.onSuspend.addListener(() => {
 //         // 🔥 Log redirect for this domain
 //         logRedirect(currentDomain);
 
-//         // 🔁 Update watchTimeMinutes in backend AND local config
-//         fetch("https://niyambadha.vercel.app/api/userdata/watchtime", {
+//         // 🚨 LOCK USER *BEFORE* redirect
+//         // 1) Update local config immediately so any new timers use 0.1
+//         userConfig.watchTimeMinutes = 0.1;
+
+//         // 2) Update backend (fire-and-forget)
+//         fetch("http://localhost:3000/api/userdata/watchtime", {
 //           method: "PATCH",
 //           headers: { "Content-Type": "application/json" },
 //           body: JSON.stringify({
 //             uid: userConfig.uid,
-//             watchTimeMinutes: userConfig.originalTimeMinutes, // 6 seconds
+//             watchTimeMinutes: 0.1, // lock to 6 seconds
 //           }),
-//         })
-//           .then(() => {
-//             // keep extension in sync immediately
-//             userConfig.watchTimeMinutes = 0.1;
-//             console.log(
-//               "✅ watchTimeMinutes updated to 0.1 in backend & local"
-//             );
-//           })
-//           .catch((err) => console.error("Failed to update watch time:", err));
+//         }).catch((err) => console.error("Failed to update watch time:", err));
 
-//         // (Optional) you can send domain as query param to puzzle page
+//         // 3) Redirect to puzzle portal with domain
 //         chrome.tabs.update(activeTabId, {
-//           url: `https://niyambadha.vercel.app/?blocked=${encodeURIComponent(
+//           url: `http://localhost:3000/?blocked=${encodeURIComponent(
 //             currentDomain
 //           )}`,
 //         });
 
-//         console.log(`⛔ Redirected after ${minutes} min →`, currentDomain);
+//         console.log(
+//           `⛔ Redirected after ${minutes} min → ${currentDomain} (watchTimeMinutes now 0.1)`
+//         );
 //       } catch (e) {
 //         console.error("Error during redirect:", e);
 //       }
@@ -886,7 +618,7 @@ chrome.runtime.onSuspend.addListener(() => {
 //   stopTimer();
 //   chrome.tabs.get(activeInfo.tabId, (tab) => {
 //     if (chrome.runtime.lastError || !tab) return;
-//     startTimerForTab(tab); // async but we don't need to await
+//     startTimerForTab(tab);
 //   });
 // });
 
@@ -902,13 +634,10 @@ chrome.runtime.onSuspend.addListener(() => {
 //     return;
 //   }
 
-//   // ❌ If same tab + same domain → do NOT reset timer
 //   if (tabId === activeTabId && newDomain === activeTabDomain) {
-//     // console.log("URL changed on same domain, keeping existing timer");
 //     return;
 //   }
 
-//   // ✅ Domain changed → restart timer logic for new domain
 //   stopTimer();
 //   startTimerForTab(tab);
 // });
@@ -916,10 +645,8 @@ chrome.runtime.onSuspend.addListener(() => {
 // // When Chrome loses / gains focus
 // chrome.windows.onFocusChanged.addListener((windowId) => {
 //   if (windowId === chrome.windows.WINDOW_ID_NONE) {
-//     // User left Chrome → stop counting
 //     stopTimer();
 //   } else {
-//     // User came back to Chrome → restart on current tab
 //     chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
 //       if (!tabs || !tabs[0]) return;
 //       startTimerForTab(tabs[0]);

@@ -120,6 +120,8 @@ const CyberPuzzlePortal = () => {
 
     if (isCorrect) {
       setStatus("success");
+      setCountdown(3); // ✅ same behavior as paheli
+      giveOriginalWatchTimeBack(); // ✅ restore watch time
     } else {
       setStatus("error");
 
@@ -146,6 +148,8 @@ const CyberPuzzlePortal = () => {
 
     if (mathAnswer.trim() === mathProblem.answer) {
       setStatus("success");
+      setCountdown(3); // ✅
+      giveOriginalWatchTimeBack(); // ✅
     } else {
       setStatus("error");
 
@@ -188,11 +192,11 @@ const CyberPuzzlePortal = () => {
       const originalMinutes = data.settings?.originalTimeMinutes ?? 1;
 
       await updateDoc(userRef, {
-        watchTimeMinutes: originalMinutes,
+        "settings.watchTimeMinutes": originalMinutes, // ✅ nested field
       });
 
       console.log(
-        "✅ watchTimeMinutes restored to originalTimeMinutes:",
+        "✅ settings.watchTimeMinutes restored to originalTimeMinutes:",
         originalMinutes
       );
     } catch (error) {
@@ -211,9 +215,6 @@ const CyberPuzzlePortal = () => {
       // ✅ Correct → success flow
       setStatus("success");
       setCountdown(3);
-
-      // 🎁 Give bonus in Firestore
-      giveFiveMinuteBonus();
       giveOriginalWatchTimeBack();
     } else {
       // ❌ Wrong
