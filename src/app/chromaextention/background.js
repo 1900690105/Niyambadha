@@ -49,7 +49,7 @@ async function ensureUid() {
   if (!signupTabOpened) {
     signupTabOpened = true;
     chrome.tabs.create({
-      url: "http://localhost:3000/auth/signup",
+      url: "niyambadha.vercel.app/auth/signup",
     });
   }
 
@@ -85,7 +85,7 @@ async function fetchUserSettings() {
       if (!signupTabOpened) {
         signupTabOpened = true;
         chrome.tabs.create({
-          url: "http://localhost:3000/auth/signup",
+          url: "niyambadha.vercel.app/auth/signup",
         });
       }
       return;
@@ -132,7 +132,7 @@ async function fetchRedirectStatus(domain) {
   if (!hasUid) return null;
 
   try {
-    const url = `http://localhost:3000/api/redirects?uid=${encodeURIComponent(
+    const url = `niyambadha.vercel.app/api/redirects?uid=${encodeURIComponent(
       userConfig.uid
     )}&domain=${encodeURIComponent(domain)}`;
 
@@ -155,7 +155,7 @@ async function logRedirect(domain) {
   const hasUid = await ensureUid();
   if (!hasUid) return;
 
-  fetch("http://localhost:3000/api/redirects", {
+  fetch("niyambadha.vercel.app/api/redirects", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -226,7 +226,7 @@ async function startTimerForTab(tab) {
       );
 
       chrome.tabs.update(tab.id, {
-        url: "http://localhost:3000/",
+        url: "niyambadha.vercel.app/",
       });
       return;
     }
@@ -267,7 +267,7 @@ async function startTimerForTab(tab) {
         // 🚨 LOCK USER *BEFORE* redirect
         userConfig.watchTimeMinutes = 0.1;
 
-        fetch("http://localhost:3000/api/userdata/watchtime", {
+        fetch("niyambadha.vercel.app/api/userdata/watchtime", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -277,7 +277,7 @@ async function startTimerForTab(tab) {
         }).catch((err) => console.error("Failed to update watch time:", err));
 
         chrome.tabs.update(activeTabId, {
-          url: `http://localhost:3000/?blocked=${encodeURIComponent(
+          url: `niyambadha.vercel.app/?blocked=${encodeURIComponent(
             currentDomain
           )}`,
         });
@@ -431,7 +431,7 @@ chrome.runtime.onSuspend.addListener(() => {
 // // ✅ Check redirect status for a domain from API
 // async function fetchRedirectStatus(domain) {
 //   try {
-//     const url = `http://localhost:3000/api/redirects?uid=${encodeURIComponent(
+//     const url = `niyambadha.vercel.app/api/redirects?uid=${encodeURIComponent(
 //       userConfig.uid
 //     )}&domain=${encodeURIComponent(domain)}`;
 
@@ -452,7 +452,7 @@ chrome.runtime.onSuspend.addListener(() => {
 
 // // ✅ Log a redirect event for this domain in Firestore via API
 // function logRedirect(domain) {
-//   fetch("http://localhost:3000/api/redirects", {
+//   fetch("niyambadha.vercel.app/api/redirects", {
 //     method: "POST",
 //     headers: {
 //       "Content-Type": "application/json",
@@ -522,7 +522,7 @@ chrome.runtime.onSuspend.addListener(() => {
 
 //       // Immediate redirect to puzzle page, no extra watch time
 //       chrome.tabs.update(tab.id, {
-//         url: "http://localhost:3000/",
+//         url: "niyambadha.vercel.app/",
 //       });
 //       return;
 //     }
@@ -568,7 +568,7 @@ chrome.runtime.onSuspend.addListener(() => {
 //         userConfig.watchTimeMinutes = 0.1;
 
 //         // 2) Update backend (fire-and-forget)
-//         fetch("http://localhost:3000/api/userdata/watchtime", {
+//         fetch("niyambadha.vercel.app/api/userdata/watchtime", {
 //           method: "PATCH",
 //           headers: { "Content-Type": "application/json" },
 //           body: JSON.stringify({
@@ -579,7 +579,7 @@ chrome.runtime.onSuspend.addListener(() => {
 
 //         // 3) Redirect to puzzle portal with domain
 //         chrome.tabs.update(activeTabId, {
-//           url: `http://localhost:3000/?blocked=${encodeURIComponent(
+//           url: `niyambadha.vercel.app/?blocked=${encodeURIComponent(
 //             currentDomain
 //           )}`,
 //         });
