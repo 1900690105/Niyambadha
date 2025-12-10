@@ -226,6 +226,7 @@ export default function FeedbackPage() {
                   </label>
                   <div className="space-y-2">
                     <input
+                      suppressHydrationWarning
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}

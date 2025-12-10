@@ -49,7 +49,9 @@ export function SettingsSection({ darkMode, userDoc }) {
   const [watchTimeMinutes, setWatchTimeMinutes] = useState(
     userDoc?.settings?.watchTimeMinutes ?? 1
   );
-
+  const [originalTimeMinutes, setOriginalTimeMinutes] = useState(
+    userDoc?.settings?.originalTimeMinutes ?? 1
+  );
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
@@ -60,6 +62,7 @@ export function SettingsSection({ darkMode, userDoc }) {
     setDisplayName(userDoc.displayName ?? "");
     setEmail(userDoc.email ?? "");
     setWatchTimeMinutes(userDoc.settings?.watchTimeMinutes ?? 1);
+    setOriginalTimeMinutes(userDoc.settings?.originalTimeMinutes ?? 1);
   }, [userDoc]);
 
   const handleSaveProfile = async () => {
@@ -77,8 +80,8 @@ export function SettingsSection({ darkMode, userDoc }) {
       return;
     }
 
-    const watchTimeNumber = Number(watchTimeMinutes);
-    if (isNaN(watchTimeNumber) || watchTimeNumber <= 0) {
+    const originalTimeNumber = Number(originalTimeMinutes);
+    if (isNaN(originalTimeNumber) || originalTimeNumber <= 0) {
       setProfileError("Watch time must be a positive number (in minutes).");
       return;
     }
@@ -90,8 +93,8 @@ export function SettingsSection({ darkMode, userDoc }) {
       await updateDoc(userRef, {
         displayName: nameTrimmed,
         email: email.toLowerCase(), // NOTE: this only updates Firestore, not Firebase Auth
-        "settings.watchTimeMinutes": watchTimeNumber,
-        "settings.originalTimeMinutes": watchTimeNumber,
+        "settings.watchTimeMinutes": originalTimeMinutes,
+        "settings.originalTimeMinutes": originalTimeMinutes,
       });
 
       setProfileSuccess("Profile updated successfully.");
@@ -199,21 +202,20 @@ export function SettingsSection({ darkMode, userDoc }) {
               </p>
             </div>
 
-            {/* Watch time */}
             <div className="space-y-1">
               <label
                 className={`text-[11px] font-medium ${
                   darkMode ? "text-slate-300" : "text-slate-700"
                 }`}
               >
-                Watch time per blocked site (minutes)
+                original Time Minutes per blocked site (minutes)
               </label>
               <input
                 type="number"
                 min="0.1"
                 step="0.1"
-                value={watchTimeMinutes}
-                onChange={(e) => setWatchTimeMinutes(e.target.value)}
+                value={originalTimeMinutes}
+                onChange={(e) => setOriginalTimeMinutes(e.target.value)}
                 className={`
                   w-full px-3 py-2 rounded-lg border text-xs outline-none
                   ${
