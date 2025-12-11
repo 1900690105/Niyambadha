@@ -515,6 +515,15 @@ const CyberPuzzlePortal = () => {
             >
               About Us
             </Link>
+            <span>|</span>
+            <Link
+              href="/privacy"
+              className={`hover:${
+                isDark ? "text-cyan-400" : "text-indigo-600"
+              }`}
+            >
+              PrivacyPolicy
+            </Link>
           </div>
           <p className="text-xs">
             Made with ❤️ for better productivity by{" "}
