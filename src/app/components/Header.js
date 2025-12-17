@@ -68,6 +68,18 @@ function Header({ isDark, setShowHelp, showHelp, setIsDark }) {
                   <Moon className="w-5 h-5 text-indigo-600" />
                 )}
               </button>
+              <button
+                onClick={() => {
+                  window.location.href = `https://chromewebstore.google.com/detail/niyambadha/bpfiejfjggblialopjfofgpnbcabjapn?authuser=0&hl=en&pli=1`;
+                }}
+                className={`p-2 m-2 rounded-lg text-gray-200 ${
+                  isDark
+                    ? "bg-white/10 hover:bg-white/20"
+                    : "bg-gray-200 hover:bg-gray-300"
+                }`}
+              >
+                Download Extention
+              </button>
             </div>
           </div>
         </div>

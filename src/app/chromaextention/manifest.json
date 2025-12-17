@@ -6,7 +6,7 @@
   "version": "1.0.0",
   "version_name": "1.0.0 Stable",
   "author": "Niyambadha Team",
-  "permissions": ["tabs", "scripting", "activeTab","storage"],
+  "permissions": ["tabs", "scripting", "activeTab","storage","alarms", "webNavigation"],
   "host_permissions": [
     "https://niyambadha.vercel.app/*",
     "http://localhost:3000/*",

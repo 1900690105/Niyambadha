@@ -12,7 +12,7 @@ export async function POST(req) {
     const decoded = await auth.verifyIdToken(idToken);
 
     // 7 days, for example:
-    const expiresIn = 7 * 24 * 60 * 60 * 1000;
+    const expiresIn = 90 * 24 * 60 * 60 * 1000;
 
     const sessionCookie = await auth.createSessionCookie(idToken, {
       expiresIn,
